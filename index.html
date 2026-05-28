@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Служба поддержки</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0f2f5; }
+  .navbar { background: #2c3e50; padding: 0 20px; display: flex; align-items: center; gap: 4px; }
+  .navbar span { color: white; font-size: 16px; font-weight: bold; padding: 16px 0; margin-right: 20px; }
+  .nav-btn { background: none; border: none; color: #aaa; padding: 16px 18px; cursor: pointer; font-size: 14px; border-bottom: 3px solid transparent; }
+  .nav-btn.active { color: white; border-bottom: 3px solid #2c7be5; }
+  .nav-btn:hover { color: white; }
+  .page { display: none; padding: 24px; }
+  .page.active { display: block; }
+  h2 { color: #2c3e50; margin-bottom: 18px; font-size: 18px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-card { background: white; border-radius: 8px; padding: 14px 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); flex: 1; min-width: 110px; text-align: center; }
+  .stat-card .num { font-size: 26px; font-weight: bold; color: #2c3e50; }
+  .stat-card .lbl { font-size: 12px; color: #888; margin-top: 4px; }
+  .form-block { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .form-block h3 { font-size: 15px; margin-bottom: 12px; color: #444; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .form-row input, .form-row select { flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  .btn { padding: 9px 20px; background: #2c7be5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .btn:hover { background: #1a5fbf; }
+  .table-block { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-x: auto; }
+  .table-block h3 { font-size: 15px; margin-bottom: 12px; color: #444; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #2c3e50; color: white; padding: 10px 12px; text-align: left; }
+  td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+  tr:hover td { background: #f8f9fa; }
+  .p-high { background: #ffcccc; color: #c0392b; font-weight: bold; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .p-medium { background: #fff3cd; color: #856404; font-weight: bold; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .p-low { background: #d4edda; color: #155724; font-weight: bold; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .status-new { color: #2c7be5; font-weight: bold; }
+  .status-inwork { color: #e67e22; font-weight: bold; }
+  .status-done { color: #27ae60; font-weight: bold; }
+  .status-escalation { color: #c0392b; font-weight: bold; }
+  .action-btn { padding: 4px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px; }
+  .btn-work { background: #fff3cd; color: #856404; }
+  .btn-done { background: #d4edda; color: #155724; }
+  .btn-escalate { background: #f8d7da; color: #c0392b; }
+  .btn-delete { background: #eee; color: #666; }
+  .template-card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #2c7be5; }
+  .template-card.escalate { border-left-color: #c0392b; }
+  .template-card.solve { border-left-color: #27ae60; }
+  .template-card h3 { font-size: 15px; color: #2c3e50; margin-bottom: 6px; }
+  .template-card .scenario { font-size: 12px; color: #888; margin-bottom: 12px; }
+  .template-card pre { background: #f8f9fa; border-radius: 6px; padding: 14px; font-family: Arial; font-size: 13px; white-space: pre-wrap; line-height: 1.6; color: #333; }
+  .copy-btn { margin-top: 10px; padding: 6px 16px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; }
+  .copy-btn:hover { background: #1a252f; }
+  .schema-block { background: white; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: center; }
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-box { background: white; border-radius: 10px; padding: 24px; width: 480px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .modal-box h3 { margin-bottom: 12px; color: #2c3e50; }
+  .modal-box textarea { width: 100%; height: 160px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; resize: none; font-family: Arial; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 12px; }
+  .modal-btns button { flex: 1; padding: 9px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .btn-copy-modal { background: #2c7be5; color: white; }
+  .btn-close-modal { background: #eee; color: #444; }
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <span>🛒 Поддержка</span>
+  <button class="nav-btn active" onclick="showPage('tickets', this)">Заявки</button>
+  <button class="nav-btn" onclick="showPage('classifier', this)">Классификатор</button>
+  <button class="nav-btn" onclick="showPage('templates', this)">Шаблоны</button>
+  <button class="nav-btn" onclick="showPage('schema', this)">Блок-схема</button>
+</div>
+
+<!-- ЗАЯВКИ -->
+<div class="page active" id="page-tickets">
+  <h2>Заявки</h2>
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="stat-all">0</div><div class="lbl">Всего</div></div>
+    <div class="stat-card"><div class="num" id="stat-new" style="color:#2c7be5">0</div><div class="lbl">Новые</div></div>
+    <div class="stat-card"><div class="num" id="stat-work" style="color:#e67e22">0</div><div class="lbl">В работе</div></div>
+    <div class="stat-card"><div class="num" id="stat-done" style="color:#27ae60">0</div><div class="lbl">Решены</div></div>
+    <div class="stat-card"><div class="num" id="stat-esc" style="color:#c0392b">0</div><div class="lbl">Эскалация</div></div>
+  </div>
+  <div class="form-block">
+    <h3>Новая заявка</h3>
+    <div class="form-row">
+      <input type="text" id="inp-name" placeholder="Имя пользователя">
+      <select id="inp-type">
+        <option>Ошибка оплаты</option>
+        <option>Сайт недоступен</option>
+        <option>Не загружается страница товара</option>
+        <option>Проблема с авторизацией</option>
+        <option>Вопрос по доставке</option>
+        <option>Жалоба на товар</option>
+        <option>Вопрос по промокоду</option>
+        <option>Предложение новой функции</option>
+      </select>
+      <input type="text" id="inp-text" placeholder="Текст обращения">
+      <button class="btn" onclick="addTicket()">Добавить</button>
+    </div>
+  </div>
+  <div class="table-block">
+    <h3>Список заявок</h3>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Пользователь</th><th>Тип</th><th>Обращение</th><th>Приоритет</th><th>Время ответа</th><th>Статус</th><th>Действия</th></tr>
+      </thead>
+      <tbody id="ticket-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- КЛАССИФИКАТОР -->
+<div class="page" id="page-classifier">
+  <h2>Классификатор обращений</h2>
+  <div class="table-block">
+    <table>
+      <thead><tr><th>Тип запроса</th><th>Пример обращения</th><th>Приоритет</th><th>Время ответа</th></tr></thead>
+      <tbody>
+        <tr><td>Ошибка оплаты</td><td>Деньги списались, но заказ не оформился</td><td><span class="p-high">Высокий</span></td><td>1 час</td></tr>
+        <tr><td>Сайт недоступен</td><td>Открываю сайт — белый экран, ничего не грузится</td><td><span class="p-high">Высокий</span></td><td>2 часа</td></tr>
+        <tr><td>Не загружается страница товара</td><td>Открываю карточку товара — ошибка 404</td><td><span class="p-medium">Средний</span></td><td>4 часа</td></tr>
+        <tr><td>Проблема с авторизацией</td><td>Не могу войти в аккаунт, пишет Неверный пароль</td><td><span class="p-medium">Средний</span></td><td>4 часа</td></tr>
+        <tr><td>Вопрос по доставке</td><td>Когда приедет мой заказ №12345?</td><td><span class="p-medium">Средний</span></td><td>4 часа</td></tr>
+        <tr><td>Жалоба на товар</td><td>Прислали не тот размер, хочу вернуть</td><td><span class="p-medium">Средний</span></td><td>8 часов</td></tr>
+        <tr><td>Вопрос по промокоду</td><td>Почему промокод не применяется при оформлении?</td><td><span class="p-low">Низкий</span></td><td>8 часов</td></tr>
+        <tr><td>Предложение новой функции</td><td>Добавьте фильтр по цвету в каталог</td><td><span class="p-low">Низкий</span></td><td>24 часа</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ШАБЛОНЫ -->
+<div class="page" id="page-templates">
+  <h2>Шаблоны ответов</h2>
+  <div class="template-card">
+    <h3>Шаблон 1 — Подтверждение получения запроса</h3>
+    <div class="scenario">Сценарий: запрос только принят в работу</div>
+    <pre id="t1">Здравствуйте, [Имя]!
+Благодарим за обращение в поддержку интернет-магазина [Название].
+Ваш запрос №[ID] принят в работу. Мы ответим в течение [время из таблицы].
+Если у вас остались вопросы — напишите нам.
+С уважением, служба поддержки.</pre>
+    <button class="copy-btn" onclick="copyTemplate('t1')">Копировать</button>
+  </div>
+  <div class="template-card solve">
+    <h3>Шаблон 2 — Решение проблемы</h3>
+    <div class="scenario">Сценарий: проблема устранена, отправляем инструкцию</div>
+    <pre id="t2">Здравствуйте, [Имя]!
+Проблема «[краткое описание]» устранена. Проверьте, пожалуйста: [инструкция].
+Если вопрос остался — ответьте на это письмо.
+Приносим извинения за неудобства.
+С уважением, служба поддержки.</pre>
+    <button class="copy-btn" onclick="copyTemplate('t2')">Копировать</button>
+  </div>
+  <div class="template-card escalate">
+    <h3>Шаблон 3 — Эскалация</h3>
+    <div class="scenario">Сценарий: передаём запрос старшему специалисту</div>
+    <pre id="t3">Здравствуйте, [Имя]!
+Ваш запрос передан старшему специалисту. Мы свяжемся с вами до [дата и время].
+Благодарим за терпение.
+С уважением, служба поддержки.</pre>
+    <button class="copy-btn" onclick="copyTemplate('t3')">Копировать</button>
+  </div>
+</div>
+
+<!-- БЛОК-СХЕМА -->
+<div class="page" id="page-schema">
+  <h2>Блок-схема алгоритма</h2>
+  <div class="schema-block">
+    <svg width="580" height="860" viewBox="0 0 580 860">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#444"/>
+        </marker>
+      </defs>
+      <style>
+        .sb{fill:#d0e8ff;stroke:#2c7be5;stroke-width:2}
+        .sd{fill:#fff3cd;stroke:#e6a817;stroke-width:2}
+        .se{fill:#f8d7da;stroke:#dc3545;stroke-width:2}
+        .sg{fill:#d4edda;stroke:#28a745;stroke-width:2}
+        .st{font-size:12px;font-family:Arial;fill:#222;text-anchor:middle;dominant-baseline:middle}
+        .sl{font-size:11px;font-family:Arial;fill:#555;text-anchor:middle}
+      </style>
+      <rect x="165" y="20" width="250" height="44" rx="22" class="sb"/>
+      <text x="290" y="42" class="st">Приём запроса</text>
+      <text x="290" y="56" class="sl">(чат, email, телефон)</text>
+      <line x1="290" y1="64" x2="290" y2="100" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="165" y="100" width="250" height="44" rx="6" class="sb"/>
+      <text x="290" y="122" class="st">Классификация запроса</text>
+      <line x1="290" y1="144" x2="290" y2="180" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="165" y="180" width="250" height="44" rx="6" class="sb"/>
+      <text x="290" y="202" class="st">Определение приоритета</text>
+      <line x1="290" y1="224" x2="290" y2="260" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <polygon points="290,260 420,310 290,360 160,310" class="sd"/>
+      <text x="290" y="310" class="st">Приоритет = Высокий?</text>
+      <line x1="160" y1="310" x2="80" y2="310" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <line x1="80" y1="310" x2="80" y2="400" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="118" y="298" class="sl">Да</text>
+      <line x1="420" y1="310" x2="500" y2="310" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <line x1="500" y1="310" x2="500" y2="400" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="462" y="298" class="sl">Нет</text>
+      <rect x="20" y="400" width="120" height="44" rx="6" class="se"/>
+      <text x="80" y="418" class="st">Старший</text>
+      <text x="80" y="434" class="st">специалист</text>
+      <rect x="440" y="400" width="120" height="44" rx="6" class="sb"/>
+      <text x="500" y="418" class="st">Оператор</text>
+      <text x="500" y="434" class="st">1-й линии</text>
+      <line x1="80" y1="444" x2="80" y2="510" stroke="#444" stroke-width="2"/>
+      <line x1="80" y1="510" x2="250" y2="510" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <line x1="500" y1="444" x2="500" y2="510" stroke="#444" stroke-width="2"/>
+      <line x1="500" y1="510" x2="330" y2="510" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <rect x="165" y="488" width="250" height="44" rx="6" class="sb"/>
+      <text x="290" y="510" class="st">Ответ пользователю</text>
+      <line x1="290" y1="532" x2="290" y2="568" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <polygon points="290,568 420,618 290,668 160,618" class="sd"/>
+      <text x="290" y="618" class="st">Проблема решена?</text>
+      <line x1="420" y1="618" x2="500" y2="618" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <line x1="500" y1="618" x2="500" y2="710" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="462" y="606" class="sl">Да</text>
+      <line x1="160" y1="618" x2="80" y2="618" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <line x1="80" y1="618" x2="80" y2="710" stroke="#444" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="118" y="606" class="sl">Нет</text>
+      <rect x="440" y="710" width="120" height="44" rx="22" class="sg"/>
+      <text x="500" y="732" class="st">Закрыть запрос</text>
+      <rect x="20" y="710" width="120" height="44" rx="6" class="se"/>
+      <text x="80" y="724" class="st">Эскалация к</text>
+      <text x="80" y="740" class="st">специалисту</text>
+    </svg>
+  </div>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО -->
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal-box">
+    <h3 id="modal-title">Шаблон ответа</h3>
+    <textarea id="modal-text"></textarea>
+    <div class="modal-btns">
+      <button class="btn-copy-modal" onclick="copyModal()">Отправить</button>
+      <button class="btn-close-modal" onclick="closeModal()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const typeData = {
+    "Ошибка оплаты":                 { priority:"Высокий", time:"1 час" },
+    "Сайт недоступен":               { priority:"Высокий", time:"2 часа" },
+    "Не загружается страница товара":{ priority:"Средний",  time:"4 часа" },
+    "Проблема с авторизацией":       { priority:"Средний",  time:"4 часа" },
+    "Вопрос по доставке":            { priority:"Средний",  time:"4 часа" },
+    "Жалоба на товар":               { priority:"Средний",  time:"8 часов" },
+    "Вопрос по промокоду":           { priority:"Низкий",   time:"8 часов" },
+    "Предложение новой функции":     { priority:"Низкий",   time:"24 часа" }
+  };
+
+  let saved = localStorage.getItem('tickets');
+  let tickets = saved ? JSON.parse(saved) : [
+    { id:1, name:"Иван Петров",    type:"Ошибка оплаты",            text:"Деньги списались, но заказ не оформился", status:"new" },
+    { id:2, name:"Мария Сидорова", type:"Вопрос по доставке",       text:"Когда приедет мой заказ №12345?",         status:"inwork" },
+    { id:3, name:"Алексей Козлов", type:"Предложение новой функции",text:"Добавьте фильтр по цвету в каталог",      status:"done" }
+  ];
+  let nextId = parseInt(localStorage.getItem('nextId')) || 4;
+
+  function save() {
+    localStorage.setItem('tickets', JSON.stringify(tickets));
+    localStorage.setItem('nextId', nextId);
+  }
+
+  function pcls(p) { return p==="Высокий"?"p-high":p==="Средний"?"p-medium":"p-low"; }
+  function statusLabel(s) {
+    return { new:["Новая","status-new"], inwork:["В работе","status-inwork"], done:["Решена","status-done"], escalation:["Эскалация","status-escalation"] }[s];
+  }
+
+  function render() {
+    const tbody = document.getElementById("ticket-table");
+    tbody.innerHTML = "";
+    tickets.forEach((t,i) => {
+      const d = typeData[t.type];
+      const [slbl,scls] = statusLabel(t.status);
+      tbody.innerHTML += `<tr>
+        <td>${t.id}</td><td>${t.name}</td><td>${t.type}</td><td>${t.text}</td>
+        <td><span class="${pcls(d.priority)}">${d.priority}</span></td>
+        <td>${d.time}</td>
+        <td><span class="${scls}">${slbl}</span></td>
+        <td>
+          <button class="action-btn btn-work"     onclick="setStatus(${i},'inwork')">В работу</button>
+          <button class="action-btn btn-done"     onclick="setStatus(${i},'done')">Решена</button>
+          <button class="action-btn btn-escalate" onclick="setStatus(${i},'escalation')">Эскалация</button>
+          <button class="action-btn btn-delete"   onclick="del(${i})">Удалить</button>
+        </td>
+      </tr>`;
+    });
+    document.getElementById("stat-all").textContent  = tickets.length;
+    document.getElementById("stat-new").textContent  = tickets.filter(t=>t.status==="new").length;
+    document.getElementById("stat-work").textContent = tickets.filter(t=>t.status==="inwork").length;
+    document.getElementById("stat-done").textContent = tickets.filter(t=>t.status==="done").length;
+    document.getElementById("stat-esc").textContent  = tickets.filter(t=>t.status==="escalation").length;
+  }
+
+  function setStatus(i, s) {
+    tickets[i].status = s;
+    render();
+    save();
+    const t = tickets[i];
+    const d = typeData[t.type];
+    const texts = {
+      inwork: `Здравствуйте, ${t.name}!\nБлагодарим за обращение в поддержку интернет-магазина.\nВаш запрос №${t.id} принят в работу. Мы ответим в течение ${d.time}.\nЕсли у вас остались вопросы — напишите нам.\nС уважением, служба поддержки.`,
+      done: `Здравствуйте, ${t.name}!\nПроблема «${t.type}» устранена. Проверьте, пожалуйста, результат.\nЕсли вопрос остался — ответьте на это письмо.\nПриносим извинения за неудобства.\nС уважением, служба поддержки.`,
+      escalation: `Здравствуйте, ${t.name}!\nВаш запрос №${t.id} передан старшему специалисту. Мы свяжемся с вами в ближайшее время.\nБлагодарим за терпение.\nС уважением, служба поддержки.`
+    };
+    if (texts[s]) {
+      document.getElementById("modal-title").textContent = `Шаблон ответа для ${t.name}`;
+      document.getElementById("modal-text").value = texts[s];
+      document.getElementById("modal").style.display = "flex";
+    }
+  }
+
+  function addTicket() {
+    const name = document.getElementById("inp-name").value.trim();
+    const type = document.getElementById("inp-type").value;
+    const text = document.getElementById("inp-text").value.trim();
+    if (!name||!text) { alert("Заполни имя и текст обращения"); return; }
+    tickets.push({ id:nextId++, name, type, text, status:"new" });
+    document.getElementById("inp-name").value="";
+    document.getElementById("inp-text").value="";
+    render();
+    save();
+  }
+
+  function del(i) { tickets.splice(i,1); render(); save(); }
+
+  function showPage(name, btn) {
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+    document.getElementById("page-"+name).classList.add("active");
+    btn.classList.add("active");
+  }
+
+  function copyTemplate(id) {
+    navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>alert("Скопировано!"));
+  }
+
+  function copyModal() {
+    navigator.clipboard.writeText(document.getElementById("modal-text").value).then(()=>alert("Ответ отправлен пользователю!"));
+  }
+
+  function closeModal() {
+    document.getElementById("modal").style.display = "none";
+  }
+
+  render();
+</script>
+</body>
+</html>
