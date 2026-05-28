@@ -59,16 +59,38 @@
   .modal-btns button { flex: 1; padding: 9px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
   .btn-copy-modal { background: #2c7be5; color: white; }
   .btn-close-modal { background: #eee; color: #444; }
+
+  /* Портал пользователя */
+  .portal-search { background: white; border-radius: 10px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+  .portal-search p { color: #666; margin-bottom: 16px; font-size: 14px; }
+  .portal-search .search-row { display: flex; gap: 10px; justify-content: center; max-width: 400px; margin: 0 auto; }
+  .portal-search input { flex: 1; padding: 10px 14px; border: 2px solid #2c7be5; border-radius: 6px; font-size: 15px; }
+  .portal-result { background: white; border-radius: 10px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .portal-result h3 { color: #2c3e50; margin-bottom: 16px; }
+  .portal-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+  .portal-row:last-child { border-bottom: none; }
+  .portal-row .label { color: #888; }
+  .portal-row .value { font-weight: bold; color: #2c3e50; }
+  .portal-msg { background: #f0f7ff; border-left: 4px solid #2c7be5; border-radius: 6px; padding: 16px; margin-top: 16px; font-size: 13px; line-height: 1.7; color: #333; white-space: pre-wrap; }
+  .portal-msg.done { background: #f0fff4; border-left-color: #27ae60; }
+  .portal-msg.escalation { background: #fff5f5; border-left-color: #c0392b; }
+  .portal-not-found { text-align: center; color: #c0392b; padding: 30px; font-size: 15px; }
+  .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+  .badge-new { background: #e8f0fe; color: #2c7be5; }
+  .badge-inwork { background: #fff3e0; color: #e67e22; }
+  .badge-done { background: #e8f5e9; color: #27ae60; }
+  .badge-escalation { background: #fde8e8; color: #c0392b; }
 </style>
 </head>
 <body>
 
 <div class="navbar">
-  <span>Поддержка</span>
+  <span>🛒 Поддержка</span>
   <button class="nav-btn active" onclick="showPage('tickets', this)">Заявки</button>
   <button class="nav-btn" onclick="showPage('classifier', this)">Классификатор</button>
   <button class="nav-btn" onclick="showPage('templates', this)">Шаблоны</button>
   <button class="nav-btn" onclick="showPage('schema', this)">Блок-схема</button>
+  <button class="nav-btn" onclick="showPage('portal', this)">👤 Портал пользователя</button>
 </div>
 
 <!-- ЗАЯВКИ -->
@@ -230,13 +252,26 @@
   </div>
 </div>
 
+<!-- ПОРТАЛ ПОЛЬЗОВАТЕЛЯ -->
+<div class="page" id="page-portal">
+  <h2>Портал пользователя</h2>
+  <div class="portal-search">
+    <p>Введите номер вашей заявки чтобы узнать статус</p>
+    <div class="search-row">
+      <input type="number" id="portal-inp" placeholder="Номер заявки, например: 1">
+      <button class="btn" onclick="searchTicket()">Найти</button>
+    </div>
+  </div>
+  <div id="portal-result"></div>
+</div>
+
 <!-- МОДАЛЬНОЕ ОКНО -->
 <div class="modal-overlay" id="modal" style="display:none">
   <div class="modal-box">
     <h3 id="modal-title">Шаблон ответа</h3>
     <textarea id="modal-text"></textarea>
     <div class="modal-btns">
-      <button class="btn-copy-modal" onclick="copyModal()">Отправить</button>
+      <button class="btn-copy-modal" onclick="sendModal()">Отправить</button>
       <button class="btn-close-modal" onclick="closeModal()">Закрыть</button>
     </div>
   </div>
@@ -256,11 +291,12 @@
 
   let saved = localStorage.getItem('tickets');
   let tickets = saved ? JSON.parse(saved) : [
-    { id:1, name:"Иван Петров",    type:"Ошибка оплаты",            text:"Деньги списались, но заказ не оформился", status:"new" },
-    { id:2, name:"Мария Сидорова", type:"Вопрос по доставке",       text:"Когда приедет мой заказ №12345?",         status:"inwork" },
-    { id:3, name:"Алексей Козлов", type:"Предложение новой функции",text:"Добавьте фильтр по цвету в каталог",      status:"done" }
+    { id:1, name:"Иван Петров",    type:"Ошибка оплаты",            text:"Деньги списались, но заказ не оформился", status:"new",  reply:"" },
+    { id:2, name:"Мария Сидорова", type:"Вопрос по доставке",       text:"Когда приедет мой заказ №12345?",         status:"inwork", reply:"" },
+    { id:3, name:"Алексей Козлов", type:"Предложение новой функции",text:"Добавьте фильтр по цвету в каталог",      status:"done", reply:"Здравствуйте, Алексей!\nПроблема «Предложение новой функции» устранена. Проверьте, пожалуйста, результат.\nС уважением, служба поддержки." }
   ];
   let nextId = parseInt(localStorage.getItem('nextId')) || 4;
+  let currentModalIdx = -1;
 
   function save() {
     localStorage.setItem('tickets', JSON.stringify(tickets));
@@ -269,7 +305,18 @@
 
   function pcls(p) { return p==="Высокий"?"p-high":p==="Средний"?"p-medium":"p-low"; }
   function statusLabel(s) {
-    return { new:["Новая","status-new"], inwork:["В работе","status-inwork"], done:["Решена","status-done"], escalation:["Эскалация","status-escalation"] }[s];
+    return {
+      new:       ["Новая",     "status-new"],
+      inwork:    ["В работе",  "status-inwork"],
+      done:      ["Решена",    "status-done"],
+      escalation:["Эскалация","status-escalation"]
+    }[s];
+  }
+  function badgeClass(s) {
+    return { new:"badge-new", inwork:"badge-inwork", done:"badge-done", escalation:"badge-escalation" }[s];
+  }
+  function statusRu(s) {
+    return { new:"Новая", inwork:"В работе", done:"Решена", escalation:"Эскалация" }[s];
   }
 
   function render() {
@@ -300,8 +347,6 @@
 
   function setStatus(i, s) {
     tickets[i].status = s;
-    render();
-    save();
     const t = tickets[i];
     const d = typeData[t.type];
     const texts = {
@@ -310,10 +355,14 @@
       escalation: `Здравствуйте, ${t.name}!\nВаш запрос №${t.id} передан старшему специалисту. Мы свяжемся с вами в ближайшее время.\nБлагодарим за терпение.\nС уважением, служба поддержки.`
     };
     if (texts[s]) {
+      tickets[i].reply = texts[s];
       document.getElementById("modal-title").textContent = `Шаблон ответа для ${t.name}`;
       document.getElementById("modal-text").value = texts[s];
+      currentModalIdx = i;
       document.getElementById("modal").style.display = "flex";
     }
+    render();
+    save();
   }
 
   function addTicket() {
@@ -321,7 +370,7 @@
     const type = document.getElementById("inp-type").value;
     const text = document.getElementById("inp-text").value.trim();
     if (!name||!text) { alert("Заполни имя и текст обращения"); return; }
-    tickets.push({ id:nextId++, name, type, text, status:"new" });
+    tickets.push({ id:nextId++, name, type, text, status:"new", reply:"" });
     document.getElementById("inp-name").value="";
     document.getElementById("inp-text").value="";
     render();
@@ -341,12 +390,48 @@
     navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>alert("Скопировано!"));
   }
 
-  function copyModal() {
-    navigator.clipboard.writeText(document.getElementById("modal-text").value).then(()=>alert("Ответ отправлен пользователю!"));
+  function sendModal() {
+    if (currentModalIdx >= 0) {
+      tickets[currentModalIdx].reply = document.getElementById("modal-text").value;
+      save();
+    }
+    navigator.clipboard.writeText(document.getElementById("modal-text").value);
+    alert("Ответ отправлен пользователю!");
+    closeModal();
   }
 
   function closeModal() {
     document.getElementById("modal").style.display = "none";
+    currentModalIdx = -1;
+  }
+
+  function searchTicket() {
+    const id = parseInt(document.getElementById("portal-inp").value);
+    const result = document.getElementById("portal-result");
+    const t = tickets.find(x => x.id === id);
+
+    if (!t) {
+      result.innerHTML = `<div class="portal-not-found">Заявка №${id} не найдена. Проверьте номер.</div>`;
+      return;
+    }
+
+    const d = typeData[t.type];
+    const msgClass = t.status === "done" ? "done" : t.status === "escalation" ? "escalation" : "";
+    const replyBlock = t.reply
+      ? `<div class="portal-msg ${msgClass}"><strong>Ответ оператора:</strong>\n\n${t.reply}</div>`
+      : `<div class="portal-msg">Ваша заявка ещё не обработана. Мы ответим в течение ${d.time}.</div>`;
+
+    result.innerHTML = `
+      <div class="portal-result">
+        <h3>Заявка №${t.id}</h3>
+        <div class="portal-row"><span class="label">Пользователь</span><span class="value">${t.name}</span></div>
+        <div class="portal-row"><span class="label">Тип запроса</span><span class="value">${t.type}</span></div>
+        <div class="portal-row"><span class="label">Обращение</span><span class="value">${t.text}</span></div>
+        <div class="portal-row"><span class="label">Приоритет</span><span class="value"><span class="${pcls(d.priority)}">${d.priority}</span></span></div>
+        <div class="portal-row"><span class="label">Время ответа</span><span class="value">${d.time}</span></div>
+        <div class="portal-row"><span class="label">Статус</span><span class="value"><span class="status-badge ${badgeClass(t.status)}">${statusRu(t.status)}</span></span></div>
+        ${replyBlock}
+      </div>`;
   }
 
   render();
